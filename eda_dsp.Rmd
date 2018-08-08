@@ -1,0 +1,460 @@
+---
+title: "Análisis de Datos Exploratorios"
+author: "Michelle Audirac"
+date: "2017-10-11"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Programas en Ciencia de Datos
+
+En este trabajo hago un análisis exploratorio en R de una tabla que contiene datos de programas en DS (Ciencia de Datos) en USA.
+
+La descarga de la tabla `timesMergedData.csv` se hace aquí: https://www.kaggle.com/sriharirao/datascience-universities-across-us/data. 
+
+## Metadata de columnas
+
+Primero cargo `timesMergedData.csv` en `dsp`.
+
+```{r}
+dsp <- read.csv('timesMergedData.csv')
+```
+
+El data frame contiene `dim(dsp)` renglones y columnas.
+
+```{r}
+dim(dsp)
+```
+
+
+La metadata de la tabla no se encuentra disponible en la web. Por eso, en la tabla abajo incluyo una descripción  del contenido de las columnas y uso signo de interrogación `?` cuando no encontré sentido en el contenido de alguna columna.
+
+Columna | Tipo | Descripción
+----|----|----
+SCHOOL | String | Escuela
+STATE | String | Estado
+CITY | String | Ciudad
+NOC | Numeric | ?
+PROGRAM | String | Programa
+TYPE | String | : 'C' - Certificate, 'M' - Master
+DEPARTMENT | String | Departamento
+DELIVERY | String | Campus, en linea o hibrido
+DURATION | String | Duracion
+PREREQ | String | Prerequisitos
+LINK | String | Link
+LOC_LAT | Numeric | Latitud
+LOC_LONG | Numeric | Longitud
+WORLD_RANK | Numeric | Ranking Mundial
+COUNTRY | String | USA
+TEACHING | Numeric | ?
+INTERNATIONAL | Numeric | ?
+RESEARCH | Numeric | ?
+CITATIONS | Numeric | ?
+INCOME | Numeric | ?
+TOTAL_SCORE | Numeric | ? 
+NUM_STUDENTS | Numeric | No. de estudiantes
+STUDENT_STAFF_RATIO | Numeric | ? 
+INTERNATIONAL_STUDENTS | String | Porcentaje de estudiantes extranjeros
+F_M_RATIO | String | ?
+YEAR | Numeric | año
+timesData | Numeric | ?
+
+Uso `str(dsp)` para ver la estructura del data frame.
+
+```{r}
+str(dsp)
+```
+
+Elimino las columnas que no voy a utilizar.
+```{r}
+dsp <- dsp[, c('SCHOOL',
+               'STATE',
+               'CITY',
+               'PROGRAM',
+               'TYPE',
+               'DEPARTMENT',
+               'DELIVERY',
+               'LINK',
+               'LOC_LAT',
+               'LOC_LONG',
+               'NUM_STUDENTS',
+               'INTERNATIONAL_STUDENTS',
+               'YEAR')]
+```
+
+## Análisis Exploratorio
+
+Las columnas en `dsp` contienen básicamente variables categóricas, por eso para el 'data vis' que muestro abajo utilizo muchas gráficas de barras. La liga http://uc-r.github.io/barcharts es una excelente fuente para producir distintos tipos de gráficas de barras en R usando dplyr y ggplot2.
+
+Para los mapas utilizo las paqueterías `leaflet` y `rgdal`. La liga que contiene el shape file `.shp` con los estados de USA es esta https://www.census.gov/geo/maps-data/data/cbf/cbf_state.html.
+
+Primero cargo las paqueterías necesarias.
+
+```{r}
+require(magrittr, quietly = TRUE, warn.conflicts = FALSE)
+require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+require(tidyr, quietly = TRUE, warn.conflicts = FALSE)
+require(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+require(leaflet, quietly = TRUE, warn.conflicts = FALSE)
+require(rgdal, quietly = TRUE, warn.conflicts = FALSE)
+require(ngram, quietly = TRUE, warn.conflicts = FALSE)
+require(rgdal, quietly = TRUE, warn.conflicts = FALSE)
+require(leaflet, quietly = TRUE, warn.conflicts = FALSE)
+```
+
+
+### YEAR
+
+Cuántas registros hay para cada año `YEAR`? 
+
+```{r}
+summary(as.factor(dsp$YEAR))
+```
+
+Hacia adelante utilizo solo: 2016's y NA's.
+
+```{r}
+dsp %<>% filter(YEAR == 2016 | is.na(YEAR))
+```
+
+Me quedo con observaciones unicas
+```{r}
+dsp %<>% distinct() 
+```
+
+### DELIVERY
+
+Las categorías de formato `DELIVERY` son:
+
+```{r}
+#summary(dsp$DELIVERY)
+dsp %>% group_by(DELIVERY) %>% summarize(n=n())
+```
+
+Limpio las categorías innecesarias en `DELIVERY` y creo una nueva columna `DELIVERY2`.
+
+```{r}
+dsp %<>% 
+  mutate(DELIVERY2 = recode(DELIVERY, 
+                            'Blended' = 'Hybrid',
+                            'Campus and online' = 'Hybrid',
+                            'Campus or Online' = 'Campus or online',
+                            'Campus, Online' = 'Campus or online',
+                            'On Campus' = 'Campus',
+                            'Online (one Saturday per month on-campus)' = 'Hybrid',
+                            'Online or Campus' = 'Campus or online',
+                            'Online or On Campus' = 'Campus or online',
+                            'Online or campus' = 'Campus or online',
+                            'Online, campus, or hybrid' = 'Campus or online'))
+```
+
+Las categorías de `DELIVERY2` son:
+
+```{r}
+dsp %>% group_by(DELIVERY2) %>% summarize(n=n())
+```
+
+```{r}
+# uso x = 'FORMATO'
+ggplot(dsp, aes(x = 'FORMATO', fill = DELIVERY2)) + 
+  geom_bar(position = position_stack(), colour = 'grey', alpha = 0.7, width = .5) +
+  labs(title = "numero de programas DS por DELIVERY2", x = "", y = "")
+```
+
+### SCHOOL
+
+Cuál escuela `SCHOOL` tiene más programas?
+
+```{r}
+dsp %>% group_by(SCHOOL, STATE) %>% tally() %>% arrange(desc(n)) %>% filter(n > 2)
+```
+ 
+```{r}
+#geom_col() en lugar de geom_bar(stats = 'identity') 
+ggplot(dsp %>% 
+         group_by(SCHOOL, STATE) %>% 
+         tally() %>% 
+         arrange(desc(n)) %>% 
+         filter(n > 2), 
+       aes(x = reorder(SCHOOL, n), y = n, fill = n)) + 
+  geom_col(colour = 'grey', alpha = 0.7) +
+  scale_fill_gradient(high = 'orchid4', low = 'orchid') +
+  coord_flip() +
+  labs(title = "numero de programas DS por SCHOOL", x = "SCHOOL", y = "count") +
+  theme(legend.position = 'none') + 
+  scale_y_continuous(breaks = 0:15)
+```
+ 
+Veo las escuelas con mayor número de programas y su forma de impartirse `DELIVERY2`.
+
+```{r}
+ggplot(dsp %>% 
+         group_by(SCHOOL, STATE, DELIVERY2) %>% 
+         tally() %>% 
+         arrange(desc(n)) %>% 
+         filter(n > 2), 
+       aes(x = reorder(SCHOOL, n), y = n, fill = DELIVERY2)) + 
+  geom_col(colour = 'grey', alpha = 0.7) +
+  coord_flip() +
+  labs(title = "numero de programas DS por SCHOOL", x = "SCHOOL", y = "count")  + 
+  scale_y_continuous(breaks = 0:15)
+```
+
+### STATE
+
+Cuántos programas existen por estado `STATE`?
+
+```{r}
+ggplot(dsp, aes(STATE)) + 
+  geom_bar(fill = 'skyblue', colour = 'grey', alpha = .5) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(legend.position = 'none') +
+  labs(title = "numero de programas DS por STATE", x = "STATE", y = "count")
+```
+ 
+Separo los programas por estado `STATE` y forma de impartirse `DELIVERY`.
+
+```{r}
+ggplot(dsp, aes(STATE, fill = DELIVERY2)) +
+  geom_bar(colour = 'grey', alpha = 0.7) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "numero de programas DS por STATE", x = "STATE", y = "count")
+```
+
+Veo en un mapa la densidad de programas que se imparten en campus.
+
+```{r}
+map <- readOGR(dsn = "./cb_2016_us_state_500k", layer = "cb_2016_us_state_500k", encoding = "UTF-8")
+
+map <- map[!map@data$NAME %in% c('Alaska', 
+                                 'Hawaii',
+                                 'Puerto Rico',
+                                 'Guam',
+                                 'United States Virgin Islands',
+                                 'Commonwealth of the Northern Mariana Islands',
+                                 'American Samoa'), ]
+```
+
+```{r}
+count = dsp %>% filter(DELIVERY2 == 'Campus') %>% group_by(STATE) %>% summarise(count_STATE = n())
+
+map@data$count_STATE = count$count_STATE[match(map@data$NAME, count$STATE)]
+
+pal <- colorNumeric("Reds", c(0, max(map@data$count_STATE, na.rm = TRUE)))
+
+banner <- paste("<strong>State: </strong>", 
+                    map@data$NAME, 
+                    "<br>DS-programs: ", 
+                    map@data$count_STATE)
+
+leaflet(data = map) %>%
+  addTiles() %>%
+  addPolygons(fillOpacity = 0.8,
+              smoothFactor = 0.5,
+              color = ~pal(count_STATE),
+              popup = banner) %>% 
+  addLegend("bottomright",
+            values = ~count_STATE,
+            pal = pal)  %>%
+  addPolylines(color = "red")
+```
+
+### CITY
+
+Qué ciudad `CITY` tiene más programas?
+
+```{r}
+dsp %>% group_by(CITY, STATE) %>% tally() %>% arrange(desc(n))
+```
+
+```{r}
+ggplot(dsp %>% 
+         group_by(CITY, STATE) %>% 
+         tally() %>% 
+         arrange(desc(n)) %>% 
+         filter(n > 2), 
+       aes(x = reorder(CITY, n), y = n)) + 
+  geom_bar(stat = 'identity', fill = 'tomato', colour = 'grey', alpha = 0.5) +
+  coord_flip() + 
+  geom_text(aes(label = n), nudge_y = 1, color = 'tomato', size = 2.5) +
+  labs(title = "numero de DS programas por CITY", x = "CITY", y = "count")
+  
+```
+ 
+Veo las ciudades con mayor número de programas y su forma de impartirse `DELIVERY2`.
+
+```{r}
+ggplot(dsp %>% 
+         group_by(CITY, STATE, DELIVERY2) %>% 
+         tally() %>% 
+         arrange(desc(n)) %>% 
+         filter(n > 2), 
+       aes(x = reorder(CITY, n), y = n, fill = DELIVERY2)) + 
+  geom_bar(stat = 'identity', colour = 'grey', alpha = 0.7) +
+  coord_flip() +
+  labs(title = "numero de DS programas por CITY", x = "CITY", y = "count")
+  
+```
+
+## PROGRAM & TYPE
+
+Las categorías de `PROGRAM` son:
+
+```{r}
+#summary(dsp$PROGRAM)
+dsp %>% group_by(PROGRAM) %>% summarize(n=n()) %>% arrange(desc(n))
+```
+
+
+
+Creo una nueva columna `PROGRAM2` usando palabras clave en `PROGRAM`.
+
+```{r}
+# \\b significa 'word boundary'
+PROGRAM2 <- as.character(dsp$PROGRAM)
+PROGRAM2 %<>% 
+  tolower() %>%  
+  gsub('\\.|\\:|\\,', '', .) %>%
+  gsub('\\&', 'and', .) %>%
+  gsub('\\(|\\)', '', .) %>%
+  
+  gsub('master\'s', 'master', .) %>% 
+  gsub('masters', 'master', .) %>%
+  gsub('\\bms\\b', '*M* *MS* *Sc*', .) %>%
+  gsub('master of science', '*M* *MS* *Sc*', .) %>%
+  gsub('\\bmba\\b', '*M* *MBA* *B*', .) %>%
+  gsub('master of business administration', '*M* *MBA* *B*', .) %>%
+  gsub('master of business and science', '*M* *MBS* *B* *Sc*', .) %>%
+  gsub('master', '*M*', .) %>%
+  
+  gsub('diploma', '*Cert*', .) %>%
+  gsub('certificate', '*Cert*', .) %>%
+  
+  gsub('doctor', '*PhD*', .) %>%
+  gsub('phd', '*PhD*', .) %>%
+  
+  gsub('\\bds\\b', '*DS*', .) %>%
+  gsub('computational data science', '*DS* *CS* *CDS*', .) %>%
+  gsub('computational and data science', '*DS* *CS* *CDS*', .) %>%
+  gsub('data science', '*DS*', .) %>%
+  gsub('computer science', '*CS*', .) %>%
+  gsub('computational science', '*CS*', .) %>%
+  
+  gsub('business analytics', '*BI* *B* *Analytics*', .) %>%
+  gsub('\\bbi\\b', '*BI* *B* *Analytics*', .) %>%
+  gsub('business intelligence', '*BI* *B* *Analytics*', .) %>%
+  
+  gsub('data mining', 'mining', .) %>%
+  gsub('mining', '*Analytics*', .) %>%
+  
+  gsub('applied statistics', 'statistics', .) %>%
+  gsub('statistical', 'statistics', .) %>%
+  gsub('statistics', '*Stats*', .) %>%
+  
+  gsub('informatics', 'analytics', .) %>%
+  gsub('data analytics', 'analytics', .) %>%
+  gsub('analytics', '*Analytics*', .) %>%
+  
+  gsub('information systems technology', '*IS* *IT*', .) %>%
+  gsub('management information systems', '*IM* *IS*', .) %>%
+  gsub('information management', 'im', .) %>%
+  gsub('information systems', 'is', .) %>%
+  gsub('\\bim\\b', '*IM*', .) %>%
+  gsub('\\bis\\b', '*IS*', .) %>%
+  
+  
+  gsub('information technology', 'it', .) %>%
+  gsub('\\bit\\b', '*IT*', .) %>%
+  
+  gsub('health', '*Health-Bio*', .) %>%
+  gsub('bio', '*Health-Bio*', .) %>%
+  gsub('urban', '*Urban*', .) %>%
+  gsub('public', '*Public*', .) %>% 
+  
+  gsub('\\bin\\b|\\band\\b|\\bof\\b|\\bwith\\b|\\ba\\b|\\bfor\\b|\\bthe\\b|\\bat\\b', '', .) %>% 
+  gsub('^a |^the ', '', .)
+
+dsp$PROGRAM2 <- PROGRAM2
+
+words <- dsp %>% select(PROGRAM, PROGRAM2)
+write.csv(words, 'words.csv')
+
+#words <- unlist(strsplit(PROGRAM2," "))
+#words <- as.data.frame(table(words)) %>% arrange(desc(Freq))
+#write.csv(words, 'words.csv')
+```
+
+De qué tipo `TYPE` son los programas? Cuántos programas son `'C'` Certificates y cuántos son `'M'` Masters?
+
+```{r}
+ggplot(dsp, aes(TYPE, fill = TYPE)) +
+  geom_bar() +
+  geom_text(stat = 'count', aes(label = ..count.., y = ..count..), vjust = 1.5)
+```
+
+Genero una nueva columna `TYPE2`
+
+```{r}
+dsp$TYPE2 <- NA
+dsp$PROG <- NA
+dsp$TYPE2[grep("*M*", dsp$PROGRAM2)] <- 'M'
+dsp$PROG[grep("*MBA*", dsp$PROGRAM2)] <- 'MBA'
+dsp$PROG[grep("MBS", dsp$PROGRAM2)] <- 'MBS'
+dsp$PROG[grep("MS", dsp$PROGRAM2)] <- 'MS'
+dsp[grep("*PhD*", dsp$PROGRAM2), c('TYPE2','PROG')] <- 'PhD'
+dsp[grep("*Cert*", dsp$PROGRAM2), c('TYPE2','PROG')] <- 'Cert'
+
+dsp %>% group_by(TYPE2, PROG) %>% tally()
+```
+
+```{r}
+dsp[is.na(dsp$PROG),c('PROGRAM','PROGRAM2')]
+```
+
+Veo qué Doctorados hay:
+```{r}
+dsp %>% filter(TYPE2 == 'PhD')
+```
+
+```{r}
+map2 <- dsp %>% filter(TYPE2 == 'PhD') %>% 
+  select(LOC_LONG, LOC_LAT, LINK, PROGRAM, SCHOOL, CITY, STATE) %>%
+  rename(long = LOC_LONG) %>%
+  rename(lat = LOC_LAT)
+
+leaflet(data = map) %>%
+  addTiles() %>%
+  addPolygons(fillOpacity = 0.8,
+              smoothFactor = 0.5,
+              color = ~pal(count_STATE)) %>% 
+  addPolylines(color = "red") %>% 
+  addMarkers(data = map2, ~long, ~lat, popup = ~paste(SCHOOL, PROGRAM, LINK, sep=':'), label = ~paste(CITY, STATE, sep = ","))
+
+#leaflet(data = map2) %>% addTiles() %>%
+#  addCircleMarkers(~long, ~lat, popup = ~paste(SCHOOL, PROGRAM, LINK, sep=':'), label = ~paste(CITY, STATE, sep = ","))
+```
+
+Veo qué maestrias en ciencias existen
+
+```{r}
+map2 <- dsp %>% filter(PROG == 'MS') %>% 
+  select(LOC_LONG, LOC_LAT, LINK, PROGRAM, SCHOOL, CITY, STATE) %>%
+  rename(long = LOC_LONG) %>%
+  rename(lat = LOC_LAT)
+
+leaflet(data = map) %>%
+  addTiles() %>%
+  addPolygons(fillOpacity = 0.8,
+              smoothFactor = 0.5,
+              color = ~pal(count_STATE)) %>% 
+  addPolylines(color = "red") %>% 
+  addMarkers(data = map2, ~long, ~lat, popup = ~paste(SCHOOL, PROGRAM, LINK, sep=':'), label = ~paste(CITY, STATE, sep = ","))
+
+#leaflet(data = map2) %>% addTiles() %>%
+#  addCircleMarkers(~long, ~lat, popup = ~paste(SCHOOL, PROGRAM, LINK, sep=':'), label = ~paste(CITY, STATE, sep = ","))
+```
+
+
