@@ -1,8 +1,9 @@
 
 
-<!-- ```{r setup} -->
-<!-- knitr::opts_chunk$set(echo = TRUE) -->
-<!-- ``` -->
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, 
+                      warning = FALSE)
+```
 
 #Exploring Data Science Programs
 
@@ -31,6 +32,7 @@ Data Science programs come in a variety of colors and flavors. As wide-ranging, 
 **hApPy DS program search!!**
 
 ## Loading packages
+
 We require the packages listed in the code chunk below to run the notebook.
 
 ```{r}
@@ -38,6 +40,7 @@ require(magrittr, quietly = TRUE, warn.conflicts = FALSE)
 require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
 require(tidyr, quietly = TRUE, warn.conflicts = FALSE)
 require(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+require(plotly, quietly = TRUE, warn.conflicts = FALSE)
 # require(leaflet, quietly = TRUE, warn.conflicts = FALSE)
 # require(rgdal, quietly = TRUE, warn.conflicts = FALSE)
 # require(ngram, quietly = TRUE, warn.conflicts = FALSE)
@@ -98,19 +101,23 @@ Let's filter programs with entries in 2016 or unknown year. We will drop any dup
 dsp %<>% filter(YEAR == 2016 | is.na(YEAR)) %>% distinct()
 ```
 
-## EDA
+The columns listed below require some munging:
 
+  * `DELIVERY`
+  * `DEPARTMENT`
+  * `PREREQ`
+  * `PROGRAM`
+  * `TYPE`
 
+**Delivery**
 
-### Delivery
-
-`DELIVERY` is a column that requires some munging. First let's look at its categories.
+Take a look at `DELIVERY`'s categories.
 
 ```{r}
 table(dsp$DELIVERY)
 ```
 
-Let's recode and look at the new `DELIVERY`'s categories.
+They look pretty dirty. We will recode them and viz the percentage of DS programs split by the new `DELIVERY`'s categories.
 
 ```{r}
 dsp %<>% 
@@ -126,8 +133,146 @@ dsp %<>%
                             'Online or campus' = 'Campus or online',
                             'Online, campus, or hybrid' = 'Campus or online'))
 
-table(dsp$DELIVERY)
+count_delivery <- dsp %>% 
+  group_by(DELIVERY) %>%
+  summarize(n = n()) %>% 
+  mutate(perc = round(n / sum(n), 4)*100) %>% 
+  mutate(str_perc = paste0(perc, "%")) %>% 
+  arrange(n)
+
+
+ggplotly(
+  count_delivery %>% 
+    ggplot(aes(x = reorder(DELIVERY, n), y = perc, fill = as.factor(DELIVERY))) + 
+    geom_col(position = "stack", colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "DS Programs by Delivery", x = "", y = "") + 
+    theme_bw() + 
+    labs(fill = "Delivery", y = "", x = "") + 
+    scale_y_continuous(limits = c(0,100)) + 
+    geom_text(aes(label = str_perc))
+)
 ```
+
+**Department**
+
+**Prerequisites**
+
+**Program**
+
+`PROGRAM` contains program names. Although these names provide us good information of a program, such as the major or concentration, there is little we can do with the raw names in `PROGRAM`. To extract the information, we will use regular expressions.
+
+```{r}
+# \\b means 'word boundary'
+PROGRAM2 <- as.character(dsp$PROGRAM)
+PROGRAM2 %<>% 
+  tolower() %>%  
+  gsub('\\.|\\:|\\,', '', .) %>%
+  gsub('\\&', 'and', .) %>%
+  gsub('\\(|\\)', '', .) %>%
+  
+  gsub('master\'s', 'master', .) %>% 
+  gsub('masters', 'master', .) %>%
+  gsub('\\bms\\b', '*M* *MS* *Sc*', .) %>%
+  gsub('master of science', '*M* *MS* *Sc*', .) %>%
+  gsub('\\bmba\\b', '*M* *MBA* *B*', .) %>%
+  gsub('master of business administration', '*M* *MBA* *B*', .) %>%
+  gsub('master of business and science', '*M* *B* *Sc*', .) %>%
+  gsub('master', '*M*', .) %>%
+  
+  gsub('diploma', '*Cert*', .) %>%
+  gsub('certificate', '*Cert*', .) %>%
+  
+  gsub('doctor', '*PhD*', .) %>%
+  gsub('phd', '*PhD*', .) %>%
+  
+  gsub('\\bds\\b', '*DS*', .) %>%
+  gsub('computational data science', '*DS* *CS* *Sc*' , .) %>%
+  gsub('computational and data science', '*DS* *CS* *Sc*', .) %>%
+  gsub('data science', '*DS*', .) %>%
+  gsub('computer science', '*CS* *Sc*', .) %>%
+  gsub('computational science', '*CS* *Sc*', .) %>%
+  
+  gsub('business analytics', '*BI-Analytics* *B*', .) %>%
+  gsub('\\bbi\\b', '*BI-Analytics* *B*', .) %>%
+  gsub('business intelligence', '*BI-Analytics* *B*', .) %>%
+  
+  gsub('data mining', 'mining', .) %>%
+  gsub('mining', '*BI-Analytics*', .) %>%
+  
+  gsub('data analytics', 'analytics', .) %>%
+  gsub('analysis', 'analytics', .) %>% 
+  gsub('analytics', 'BI-Analytics* *B*', .) %>%
+  
+  gsub('applied statistics', 'statistics', .) %>%
+  gsub('statistical', 'statistics', .) %>%
+  gsub('statistics', '*Stats* *Sc*', .) %>%
+  
+  gsub('information systems technology', '*IT-IS*', .) %>%
+  gsub('management information systems', '*IM* *B*', .) %>%
+  gsub('information management', 'im', .) %>%
+  gsub('information systems', 'is', .) %>%
+  gsub('\\bim\\b', '*IM* *B*', .) %>%
+  gsub('\\bis\\b', '*IT-IS*', .) %>%
+  gsub('information technology', 'it', .) %>%
+  gsub('\\bit\\b', '*IT-IS*', .) %>%
+  
+  # gsub('health', '*Health-Bio*', .) %>%
+  # gsub('bio', '*Health-Bio*', .) %>%
+  # gsub('urban', '*Urban*', .) %>%
+  # gsub('public', '*Public*', .) %>% 
+  # gsub('management', '*Mgmt*', .) %>% 
+  
+  gsub('\\bin\\b|\\band\\b|\\bof\\b|\\bwith\\b|\\ba\\b|\\bfor\\b|\\bthe\\b|\\bat\\b', '', .) %>% 
+  gsub('^a |^the ', '', .)
+
+dsp$PROGRAM2 <- PROGRAM2
+
+# words <- unlist(strsplit(PROGRAM2," "))
+# words <- as.data.frame(table(words)) %>% arrange(desc(Freq))
+# words
+```
+
+With the key words that we extracted from `PROGRAM`, we can now create a classification for our programs and viz the percentage of DS programs split by the new `program_classification`'s categories: (note that we did not build disjoint classes and not all programs could be classified)
+
+* BI_Analytics
+* CS 
+* DS 
+*
+
+```{r}
+program_classification <- dsp %>% 
+  select(PROGRAM, 
+         PROGRAM2) %>% 
+  mutate(DS = grepl("\\*DS\\*", PROGRAM2), 
+         CS = grepl("\\*CS\\*", PROGRAM2), 
+         BI_Analytics = grepl("\\*BI-Analytics\\*", PROGRAM2), 
+         Stats = grepl("*\\Stats\\*", PROGRAM2), 
+         IT_IS = grepl("*\\IT-IS\\*", PROGRAM2), 
+         IM = grepl("\\*IM\\*", PROGRAM2)) %>% 
+  mutate(DS = if_else(BI_Analytics, FALSE, DS)) %>% 
+  gather(DS, CS, BI_Analytics, Stats, IT_IS, IM, key = "CLASSIFICATION", value = "bool") %>% 
+  filter(bool)
+
+count_classification <- program_classification %>% 
+  group_by(CLASSIFICATION) %>%
+  summarize(n = n()) %>% 
+  mutate(perc = round(n / sum(n), 4)*100) %>% 
+  mutate(str_perc = paste0(perc, "%")) %>% 
+  arrange(n)
+
+ggplotly(
+  count_classification %>% 
+    ggplot(aes(x = reorder(CLASSIFICATION, n), y = perc, fill = as.factor(CLASSIFICATION))) + 
+    geom_col(position = "stack", colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "DS Programs by Classification", x = "", y = "") + 
+    theme_bw() + 
+    labs(fill = "Classification", y = "", x = "") + 
+    scale_y_continuous(limits = c(0,100)) + 
+    geom_text(aes(label = str_perc))
+)
+```
+
+
 
 ## Where to find more?
 
