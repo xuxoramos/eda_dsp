@@ -28,6 +28,7 @@ require(rgdal, quietly = TRUE, warn.conflicts = FALSE)
 require(leaflet, quietly = TRUE, warn.conflicts = FALSE)
 library(plotly)
 library(stringr)
+library(knitr)
 
 
 # Lectura API 
@@ -294,13 +295,14 @@ The popularity of Data Science is increasing by the day, and the main reasons fo
 Because of all the technology that surrounds us and the amount of data available, there's a great variety of 
 ways in which knowledge of Data Science can be applied. 
 
-Data Science is a broad discipline, for it requieres vast knowledge on math and statistics, computer science and
-domain knowledge. The approach given to a Data Science program can vary a lot; that's the reason why we 
-decided to explore the different school departments in charge of the programs. 
+Data Science is a broad discipline, and  it requieres vast knowledge on math and statistics, computer science and
+domain knowledge. The approach given to a Data Science program can vary a lot, and that's the reason why we 
+decided to explore the different school departments in charge of the programs. We are assuming that the department
+is what determines the scope given to the program. 
 
-To simplify the analysis we decided to create 8 'big' categories: Business, Math, Statistics, Computer Science,
+To simplify the analysis we decided to create 8 <b> 'big' </b> categories: Business, Math, Statistics, Computer Science,
 Data Science, Science, Engineering and Technology. It is important to mention that a single program can fall in different
-categories. Some programs don't fall into any category, this can be due to generic department names like 
+categories, specially the science programs. Some programs don't fall into any category, this can be due to generic department names like 
 'College of Interdisciplinary Studies	'. 
 
 ```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
@@ -320,6 +322,14 @@ depto <- dsp %>%
 
 # depto
 ```
+
+
+### Recoding of the department
+
+In order to categorize observations into the 8 big categories we created a new column called *depto*,
+this column contains the recoded version of the department of each program in 
+the data set. For example, some of the departments present were "Erivan K. Haub School of Business" 
+and "Kogod School of Business", the value of *depto* for both will now be "depto_business". 
 
 ```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
 depto <- depto %>%
@@ -391,12 +401,15 @@ count_dept <- count_dept %>%
   mutate(prop_prog = round(num_prog/sum(num_prog),4)*100) %>% 
   mutate(porcentaje = paste0(prop_prog, "%"))
 
-count_dept
+# select(count_dept,  )
+
+count_dept %>% 
+  select(dept, num_prog, porcentaje) %>% 
+  kable(col.names = c("Department", "Programs", "% of Total"))
 ```
 
+Again, the new categories for *depto* are not mutually exclusive, so the same program can fall into different categories. 
 
-
-Las clases no son mutuamente excluyentes pues hay departamentos que agrupan disciplinas como Math y Statistics en un solo departamento, entonces esto cuenta por dos. 
 
 ```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
 # uso x = 'FORMATO'
@@ -424,15 +437,17 @@ ggplotly(plot_deptos)
 
 ```
 
+Here, we can see that departments related to Business are in charge of 40.65% of
+the programs, departments related to Science account for 24.44% of the programs, and the Computer Science Departments are in charge of 8.23% of the programs.
+
+Something interesting to notice is that only 2% of the programs are held by a Data Science Department. Our theory is that little by little more Data Sciente departments are going to be created, because of the popularity of this discipline. It would be interesting to analyze how much did this proportion changed from years before. 
+
 
 ### Prerequisites
 
-Some programs have prerequisites. Basically they math, statistics, computer science knowledge. 
-Let's take a look at the prerequisites for some programs. 
+As we already mentioned, Data Science requieres vast knowledge on math, statistics and computer science. That's the reason why some programs requiere applicants to have knowledge in these areas. Just like with departments, we created a new column called *"prerequisite"*. 
 
-
-
-En algunos programas piden prerequisitos para poder empezar el programa: clases de matemáticas, de estadísticas, programación. Veamos qué piden los programas listados. 
+Let's take a look at the prerequisites for the programs. 
 
 ```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
 
@@ -468,7 +483,8 @@ depto <- depto %>%
   select(-present, -required) %>% 
   
   arrange(id)
-  
+
+
 head(depto, 10)
 ```
 
@@ -483,7 +499,9 @@ count_prerq <- depto %>%
   mutate(porcentaje = paste0(prop_prog, "%"))
 
 
-count_prerq
+count_prerq %>% 
+  select(prereq, num_prog, porcentaje) %>% 
+  kable(col.names = c("Prerequisites", "Programs", "% of Total"))
 ```
 
 
@@ -509,7 +527,13 @@ ggplotly(
 
 ```
 
+Unfortunately, information about prerequisites of 44.85% of the programs is not avalaible. It is clear that math, statistics and computer science skills are *vital* skills for anyone who wants to become a data scientist. 
+
+
 ### State and Department
+
+We decided to explore the department of each program by state of the United States. 
+
 ```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
 state_department <- depto %>% 
   group_by(STATE, depto) %>% 
@@ -550,8 +574,12 @@ ggplotly(
 
 ```
 
+We can observe that the states of New York, California and Massachusetts are the states with the most number of programs. Most of the programs in New York belong to the department of Science (color blue). On the other side, most of the programs in California belong to the Business department (color coral). Back to the East, most programs in Massachusetts belong to the Business department. 
 
 ### Delivery and Department
+
+We decided to explore the relationship between the Department and the type of delivery of each program. 
+
 ```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
 delivery_department <- depto %>% 
   group_by(depto, DELIVERY2) %>% 
@@ -587,6 +615,8 @@ ggplotly(
 )
 
 ```
+
+It is easy to notice that in all departments most programs are delivered physically on campus (color green). The Business and the Science departments are the ones with the most number of programs online. 
 
 ### Prerequisites and Department 
 ```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
@@ -631,4 +661,4 @@ ggplotly(
 
 ```
 
-
+In this graph we can explore the prerequisites per program. We can observe that math and statistics are prerequisites for programs in all departments. All departments have programs that require applicants to have a bachelor degree, specially the department of Engineering and the department of Computer Science. 
