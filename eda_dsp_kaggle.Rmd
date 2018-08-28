@@ -1,0 +1,763 @@
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      warning = FALSE)
+```
+
+#Exploring Data Science Programs
+
+*Michelle Audirac*
+
+*Valeria Perez-Cong*
+
+**If you're looking for the Data Science program that is right for you, this notebook will help you get started in your search!**
+
+Finding the graduate program that best fits you has never been an easy task. Finding the right Data Science program might even be harder! the soaring hunger for data-savvy workforce in all industries has rocketed the offering of Data Science programs. 
+
+If you are interested in data, then there is a good chance that instead of surfing the web for DS programs you plan on storing scraped university pages data, to then build a dashboard and explore it.
+
+**Good news is**, you found this post and you won't have to begin your project from scratch since we provide an EDA of a kaggle [dataset](https://www.kaggle.com/sriharirao/datascience-universities-across-us) containing web scraped DS programs data. You can also check out the shiny app that we built with this dataset [here](LIGA).
+
+But first, chill! Not so fast...
+
+Data Science programs come in a variety of colors and flavors. As wide-ranging, interdisciplinary and clouded in hype as the term -Data Science- can be, first figure out what is the data outfit you want to wear:
+
+**Step 1** make sure you understand whether you are looking to style your business intelligence skills or if your looking to fly your machine learning ship, as these are different journeys. Deep-dive into whether you would like to specialize in bio or urban applications. 
+
+**Step 2** depending on where you arrived at in step 1, filter out programs and departments.  Ask yourself if you wish to continue working as you might want to consider the online and part time programs space.
+
+**Step 3** go through this notebook's content, use our shiny app to get insights...then use these insights to make an intelligent web surf and finally make an informed decision.
+
+**hApPy DS program search!!**
+
+In addition, if you are learning how to use hadley's `ggplot2`, this notebook takes advantage of ggplot's grammar of graphics to play with plot aesthetics. 
+
+## Loading packages
+
+We require the packages listed in the code chunk below to run the notebook.
+
+```{r}
+require(magrittr, quietly = TRUE, warn.conflicts = FALSE)
+require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+require(tidyr, quietly = TRUE, warn.conflicts = FALSE)
+require(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+require(plotly, quietly = TRUE, warn.conflicts = FALSE)
+# require(leaflet, quietly = TRUE, warn.conflicts = FALSE)
+# require(rgdal, quietly = TRUE, warn.conflicts = FALSE)
+# require(ngram, quietly = TRUE, warn.conflicts = FALSE)
+```
+
+##  Metadata
+
+Let's read the [Data Science Universities across US](https://www.kaggle.com/sriharirao/datascience-universities-across-us) dataset and print its structure.
+
+```{r}
+dsp <- read.csv("./timesMergedData.csv")
+str(dsp)
+```
+
+With this, we infer the dataset's metadata:
+
+Field | Type | Description
+----|----|----
+SCHOOL | String | school PGRM_NAME
+STATE | String | state
+CITY | String | city
+NOC | Numeric | ?
+PROGRAM | String | program PGRM_NAME
+TYPE | String | : 'C' - Certificate, 'M' - Master
+DEPARTMENT | String | department PGRM_NAME
+DELIVERY | String | campus, on line or hybrid
+DURATION | String | duraiion
+PREREQ | String | prerequisites
+LINK | String | link
+LOC_LAT | Numeric | latitude
+LOC_LONG | Numeric | longitude
+WORLD_RANK | Numeric | school's world ranking
+COUNTRY | String | USA
+TEACHING | Numeric | ?
+INTERNATIONAL | Numeric | ?
+RESEARCH | Numeric | ?
+CITATIONS | Numeric | ?
+INCOME | Numeric | ?
+TOTAL_SCORE | Numeric | ? 
+NUM_STUDENTS | Numeric | school's number of students
+STUDENT_STAFF_RATIO | Numeric | ? 
+INTERNATIONAL_STUDENTS | String | school's percentage of international students
+F_M_RATIO | String | ?
+YEAR | Numeric | program's year
+timesData | Numeric | ?
+
+## Preparing data
+
+Look how Data Science has gained groud through the years
+
+```{r}
+summary(as.factor(dsp$YEAR))
+```
+
+Let's filter programs with entries in 2016 or unknown year. We will drop any duplicates.
+
+```{r}
+dsp %<>% filter(YEAR == 2016 | is.na(YEAR)) %>% distinct()
+```
+
+Now, we will include a program ID
+```{r}
+dsp <- dsp %>% 
+  mutate(ID = 1:nrow(dsp))
+```
+
+Finally, in the next section we will munge and visualize the columns listed below.
+
+  * `DELIVERY`
+  * `DEPARTMENT`
+  * `PREREQ`
+  * `PROGRAM`
+  * `TYPE`
+
+## Univariate EDA
+
+### Delivery
+
+Let's take a look at `DELIVERY`'s categories.
+
+```{r}
+table(dsp$DELIVERY)
+```
+
+They look pretty dirty. We will recode them and viz the percentage of DS programs split by the new `DELIVERY`'s categories.
+
+```{r}
+dsp %<>% 
+  mutate(DELIVERY = recode(DELIVERY, 
+                            'Blended' = 'Hybrid',
+                            'Campus and online' = 'Hybrid',
+                            'Campus or Online' = 'Campus or online',
+                            'Campus, Online' = 'Campus or online',
+                            'On Campus' = 'Campus',
+                            'Online (one Saturday per month on-campus)' = 'Hybrid',
+                            'Online or Campus' = 'Campus or online',
+                            'Online or On Campus' = 'Campus or online',
+                            'Online or campus' = 'Campus or online',
+                            'Online, campus, or hybrid' = 'Campus or online'))
+
+ggplotly(
+    dsp %>% 
+      group_by(DELIVERY) %>% 
+      summarize(n = n()) %>% 
+      mutate(perc = round(n / sum(n), 4)*100) %>% 
+      mutate(str_perc = paste0(perc, "%")) %>% 
+      ggplot(aes(x = reorder(DELIVERY, n), 
+                 y = perc, 
+                 fill = as.factor(DELIVERY))) + 
+      geom_col(position = "stack", colour = 'grey', alpha = 0.7, width = .5) + 
+      geom_text(aes(label = str_perc)) + 
+      labs(title = "DS Programs by Delivery", 
+           x = "", 
+           y = "") + 
+      theme_bw() + 
+      theme(legend.position="none", 
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9))) + 
+      scale_y_continuous(limits = c(0,100))
+    )
+```
+
+### Department
+
+Let's take a look at some entries in `DEPARTMENT`.
+
+```{r}
+head(dsp$DEPARTMENT)
+```
+
+With the department name, we will create seven 'big' department categories: 
+
+* *dept business* Business department 
+* *dept math* Math department 
+* *dept stats* Statistics department
+* *dept cs* Computer Science department
+* *dept ds* Data Science department
+* *dept engineering* Engineering department
+* *dept tech* Technology department
+
+```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
+dsp %<>% 
+  mutate(DEPARTMENT = as.character(DEPARTMENT)) %>% 
+  mutate(DEPARTMENT = tolower(DEPARTMENT))
+
+DEPT_CAT <- dsp %>% 
+  select(ID, DEPARTMENT)  %>%
+  mutate(dept_business = 
+           grepl("business", DEPARTMENT) | 
+           grepl("management", DEPARTMENT) | 
+           grepl("administration", DEPARTMENT) |
+           grepl("administrative", DEPARTMENT), 
+         dept_math = 
+           grepl("math", DEPARTMENT) | 
+           grepl("mathematics", DEPARTMENT) | 
+           grepl("mathematical", DEPARTMENT), 
+         dept_stats = 
+           grepl("statistics", DEPARTMENT) | 
+           grepl("statistical", DEPARTMENT),  
+         dept_cs = 
+           grepl("computer science", DEPARTMENT) | 
+           grepl("computer sciences", DEPARTMENT) | 
+           grepl("computer", DEPARTMENT), 
+         dept_ds = 
+           grepl("data science", DEPARTMENT) | 
+           grepl("data sciences", DEPARTMENT), 
+         dept_engineering = 
+           grepl("engineer", DEPARTMENT) | 
+           grepl("engineering", DEPARTMENT), 
+         dept_tech = 
+           grepl("tech", DEPARTMENT) | 
+           grepl("technological", DEPARTMENT) | 
+           grepl("technology", DEPARTMENT) | 
+           grepl("information technology", DEPARTMENT))
+```
+
+It is important to mention that a single program can fall into different department categories and some programs don't fall into any category. 
+
+```{r}
+DEPT_CAT %<>% 
+  mutate(sum_dept = dept_business + 
+           dept_math + 
+           dept_stats + 
+           dept_cs + 
+           dept_ds + 
+           dept_engineering + 
+           dept_tech)
+
+table(DEPT_CAT$sum_dept)
+```
+
+Finally, we will create a bar plot with the department categories.
+
+```{r}
+DEPT_CAT %<>% 
+    gather(dept_business, 
+           dept_math, 
+           dept_stats, 
+           dept_cs, 
+           dept_ds, 
+           dept_engineering, 
+           dept_tech, 
+           key = "cat", value = "present") %>% 
+    filter(present == 1) %>% 
+  mutate(cat = sub("_"," ",cat)) %>% 
+  select(-present)
+
+ggplotly(
+ DEPT_CAT %>% 
+    group_by(cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100, 
+           str_perc = paste0(perc, "%")) %>% 
+    ggplot(aes(x = reorder(cat, n), 
+               y = perc, 
+               fill = as.factor(cat))) + 
+    geom_col(colour = 'grey', alpha = 0.7, width = .5) + 
+    geom_text(aes(label = str_perc)) + 
+    labs(title = "DS Programs per Department", 
+         x = "", 
+         y = "") + 
+    theme_bw() + 
+    theme(legend.position="none", 
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9))) + 
+    scale_y_continuous(limits = c(0,100))
+  )
+```
+
+### Prerequisites
+
+The prerequisites in `PREREQ` are:
+
+* **Bachelor's degree**
+* **Computer science** prerequisites
+* **Math** prerequisites
+* **Statistics** prerequisites
+
+and biology, economics, and not available (which we will filter out)
+
+```{r}
+dsp %<>% 
+  mutate(PREREQ = as.character(PREREQ)) %>% 
+  mutate(PREREQ = tolower(PREREQ))
+
+PREREQ_CAT <- 
+  dsp %>% 
+  select(ID, PREREQ) %>% 
+  mutate(prereq_biology = grepl("biology", PREREQ), 
+         prereq_cs = grepl("computer science", PREREQ), 
+         prereq_math = grepl("math", PREREQ), 
+         prereq_statistics = grepl("stat", PREREQ), 
+         prereq_economics = grepl("eco", PREREQ), 
+         not_available = grepl("not", PREREQ), 
+         bachelor_degree = grepl("degree", PREREQ)) %>% 
+  gather(prereq_biology, 
+         prereq_cs, 
+         prereq_math, 
+         prereq_statistics, 
+         prereq_economics, 
+         not_available, 
+         bachelor_degree, 
+         key = "cat", 
+         value = "present") %>% 
+    filter(present == 1) %>% 
+    mutate(cat = sub("_", " ", cat)) %>% 
+  select(-present) %>% 
+  filter(cat != 'not available', 
+         cat != 'prereq biology', 
+         cat != 'prereq economics')
+```
+
+Let's visualize the prerequisites for the ds programs
+
+```{r}
+ggplotly(
+  PREREQ_CAT %>% 
+    group_by(cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100, 
+           str_perc = paste0(perc, "%")) %>% 
+    ggplot(aes(x=reorder(cat, n), 
+               y = perc, 
+               fill = as.factor(cat))) + 
+    geom_col(colour = 'grey', alpha = 0.7, width = .5) + 
+    geom_text(aes(label = str_perc)) + 
+    labs(title = "DS Programs per Prerequisite", 
+         x = "", 
+         y = "") +
+    theme_bw() + 
+    theme(legend.position="none", 
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9))) + 
+    scale_y_continuous(limits = c(0,100))
+  )
+```
+
+### Program
+
+`PROGRAM` contains program names. Although these names provide us program information, such as the major or concentration, there is little we can do with the raw names in `PROGRAM`. To extract the information, we will use regular expressions.
+
+```{r}
+dsp %<>% 
+  mutate(PROGRAM = as.character(PROGRAM)) %>% 
+  mutate(PROGRAM = tolower(PROGRAM))
+
+# \\b means 'word boundary'
+PGRM_NAME <- dsp$PROGRAM %>% 
+  gsub('\\.|\\:|\\,', '', .) %>%
+  gsub('\\&', 'and', .) %>%
+  gsub('\\(|\\)', '', .) %>%
+  
+  gsub('master\'s', 'master', .) %>% 
+  gsub('masters', 'master', .) %>%
+  gsub('\\bms\\b', '*M* *MS* *Sc*', .) %>%
+  gsub('master of science', '*M* *MS* *Sc*', .) %>%
+  gsub('\\bmba\\b', '*M* *MBA* *B*', .) %>%
+  gsub('master of business administration', '*M* *MBA* *B*', .) %>%
+  gsub('master of business and science', '*M* *B* *Sc*', .) %>%
+  gsub('master', '*M*', .) %>%
+  
+  gsub('diploma', '*Cert*', .) %>%
+  gsub('certificate', '*Cert*', .) %>%
+  
+  gsub('doctor', '*PhD*', .) %>%
+  gsub('phd', '*PhD*', .) %>%
+  
+  gsub('\\bds\\b', '*DS*', .) %>%
+  gsub('computational data science', '*DS* *CS* *Sc*' , .) %>%
+  gsub('computational and data science', '*DS* *CS* *Sc*', .) %>%
+  gsub('data science', '*DS*', .) %>%
+  gsub('computer science', '*CS* *Sc*', .) %>%
+  gsub('computational science', '*CS* *Sc*', .) %>%
+  
+  gsub('business analytics', '*BI-Analytics* *B*', .) %>%
+  gsub('\\bbi\\b', '*BI-Analytics* *B*', .) %>%
+  gsub('business intelligence', '*BI-Analytics* *B*', .) %>%
+  
+  gsub('data mining', 'mining', .) %>%
+  gsub('mining', '*BI-Analytics*', .) %>%
+  
+  gsub('data analytics', 'analytics', .) %>%
+  gsub('analysis', 'analytics', .) %>% 
+  gsub('analytics', 'BI-Analytics* *B*', .) %>%
+  
+  gsub('applied statistics', 'statistics', .) %>%
+  gsub('statistical', 'statistics', .) %>%
+  gsub('statistics', '*Stats* *Sc*', .) %>%
+  
+  gsub('information systems technology', '*IT-IS*', .) %>%
+  gsub('management information systems', '*IM* *B*', .) %>%
+  gsub('information management', 'im', .) %>%
+  gsub('information systems', 'is', .) %>%
+  gsub('\\bim\\b', '*IM* *B*', .) %>%
+  gsub('\\bis\\b', '*IT-IS*', .) %>%
+  gsub('information technology', 'it', .) %>%
+  gsub('\\bit\\b', '*IT-IS*', .) %>%
+  
+  # gsub('health', '*Health-Bio*', .) %>%
+  # gsub('bio', '*Health-Bio*', .) %>%
+  # gsub('urban', '*Urban*', .) %>%
+  # gsub('public', '*Public*', .) %>% 
+  # gsub('management', '*Mgmt*', .) %>% 
+  
+  gsub('\\bin\\b|\\band\\b|\\bof\\b|\\bwith\\b|\\ba\\b|\\bfor\\b|\\bthe\\b|\\bat\\b', '', .) %>% 
+  gsub('^a |^the ', '', .)
+
+dsp$PGRM_NAME <- PGRM_NAME
+
+# words <- unlist(strsplit(PGRM_NAME," "))
+# words <- as.data.frame(table(words)) %>% arrange(desc(Freq))
+# words
+```
+
+With the key words that we extracted from `PROGRAM`, we can now create a classification for our programs and viz the percentage of DS programs split by the new `program_classification`'s categories: (note that we did not build disjoint classes and not all programs could be classified)
+
+* **BI Analytics** Business Intelligence and Analytics
+* **CS** Computer Science 
+* **DS** Data Science 
+* **IM** Information Management
+* **IT IS** Information Technology and Information Systems 
+* **Stats** Statistics
+
+```{r}
+PGRM_CAT <- dsp %>% 
+  select(ID, 
+         PGRM_NAME) %>% 
+  mutate(DS = grepl("\\*DS\\*", PGRM_NAME), 
+         CS = grepl("\\*CS\\*", PGRM_NAME), 
+         BI_Analytics = grepl("\\*BI-Analytics\\*", PGRM_NAME), 
+         Stats = grepl("*\\Stats\\*", PGRM_NAME), 
+         IT_IS = grepl("*\\IT-IS\\*", PGRM_NAME), 
+         IM = grepl("\\*IM\\*", PGRM_NAME)) %>% 
+  mutate(DS = if_else(BI_Analytics, FALSE, DS)) %>% 
+    gather(DS, CS, BI_Analytics, Stats, IT_IS, IM, key = "cat", value = "present") %>% 
+    filter(present == 1) %>% 
+    mutate(cat = sub("_", " ", cat))
+
+ggplotly(
+  PGRM_CAT %>% 
+    group_by(cat) %>% 
+    summarize(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4)*100) %>% 
+    mutate(str_perc = paste0(perc, "%")) %>% 
+    ggplot(aes(x = reorder(cat, n), 
+               y = perc, 
+               fill = as.factor(cat))) + 
+    geom_col(position = "stack", colour = 'grey', alpha = 0.7, width = .5) + 
+    geom_text(aes(label = str_perc)) + 
+    labs(title = "DS Programs by Classification", 
+         x = "", 
+         y = "") + 
+    theme_bw() + 
+    theme(legend.position="none", 
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9))) + 
+    scale_y_continuous(limits = c(0,100))
+)
+```
+
+### Type
+
+`TYPE` splits the programs in `C` certificates and `M` master degrees.
+
+```{r}
+table(dsp$TYPE)
+```
+
+Finally, we will modify `TYPE` taking into account what we extracted from `PROGRAM`. New `TYPE` categories are:
+
+* **C** Certificate
+* **M** Master
+* **MS** Master in Science
+* **MBA** Master in Business and Administration
+* **PhD** Doctorate of Philosophy
+
+```{r}
+TYPE_CAT <- dsp %>% 
+  select(ID, 
+         PGRM_NAME) %>% 
+  mutate(MBA = grepl("\\*MBA\\*", PGRM_NAME), 
+         MS = grepl("\\*MS\\*", PGRM_NAME), 
+         PhD = grepl("\\*PhD\\*", PGRM_NAME), 
+         C = grepl("*\\Cert\\*", PGRM_NAME)) %>% 
+  mutate(sum_type = MBA + MS + PhD + C) %>% 
+  filter(sum_type == 1) %>% 
+  gather(MBA, MS, PhD, C, key = "type", value = "present") %>% 
+  filter(present == 1) %>% 
+  mutate(type = sub("_", " ", type)) %>% 
+  select(ID, type)
+
+dsp %<>% 
+  mutate(TYPE = as.character(TYPE)) %>% 
+  left_join(TYPE_CAT)
+
+dsp$TYPE[!is.na(dsp$type)] <- dsp$type[!is.na(dsp$type)]
+
+ggplotly(
+    dsp %>% 
+      group_by(TYPE) %>% 
+      summarize(n = n()) %>% 
+      mutate(perc = round(n / sum(n), 4)*100) %>% 
+      mutate(str_perc = paste0(perc, "%")) %>% 
+      ggplot(aes(x = reorder(TYPE, n), 
+                 y = perc, 
+                 fill = as.factor(TYPE))) + 
+      geom_col(position = "stack", colour = 'grey', alpha = 0.7, width = .5) + 
+      geom_text(aes(label = str_perc)) + 
+      labs(title = "DS Programs by Delivery Type", 
+           x = "", 
+           y = "") + 
+      theme_bw() + 
+      theme(legend.position="none", 
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9))) + 
+      scale_y_continuous(limits = c(0,100))
+    )
+```
+
+## Bivariate EDA
+
+Great! we managed to extract useful features from program and department names. Now it is time to stretch our knowledge about DS programs by looking deeper at their offering by program and department categories.
+
+### Department Categories
+
+* **Which departments, split by categories, offer DS programs by state?**
+
+```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
+ggplotly(
+  DEPT_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       STATE)) %>% 
+    group_by(STATE) %>% 
+    mutate(n_state = n()) %>% 
+    group_by(STATE, n_state, cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100, 
+           str_perc = paste0(perc, "%")) %>% 
+    ggplot(aes(x = reorder(STATE, n_state), 
+               y = n)) + 
+    geom_col(aes(fill = cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Number of programs per State", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+)
+
+```
+
+* **Which departments, split by categories, offer DS programs by delivery?**
+
+```{r}
+ggplotly(
+  DEPT_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       DELIVERY)) %>% 
+    group_by(cat, DELIVERY) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = DELIVERY), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Delivery by Department Category", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+* **Which departments, split by categories, offer DS programs by prerequisites?**
+
+```{r}
+ggplotly(
+  DEPT_CAT %>% 
+    inner_join(PREREQ_CAT %>% 
+                 rename(prereq_cat = cat)) %>% 
+        group_by(cat, prereq_cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = prereq_cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Prerequisites by Department Category", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+* **Which departments, split by categories, offer DS programs by program type?**
+
+```{r}
+ggplotly(
+  DEPT_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       TYPE)) %>% 
+    group_by(cat, TYPE) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = TYPE), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Delivery by Department Category", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+## Program categories
+
+* **Which programs split by categories are offered by state?**
+
+```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
+ggplotly(
+  PGRM_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       STATE)) %>% 
+    group_by(STATE) %>% 
+    mutate(n_stat = n()) %>% 
+    group_by(STATE, n_stat, cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = reorder(STATE, n_stat), 
+               y = n)) + 
+    geom_col(aes(fill = cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Number of programs per State", 
+         x = "", 
+         y = "", 
+         fill = "") +
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+* **Which programs split by categories are offered by delivery?**
+
+```{r}
+ggplotly(
+  PGRM_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       DELIVERY)) %>% 
+    group_by(cat, DELIVERY) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = DELIVERY), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Delivery by Program Category", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+* **Which programs split by categories are offered by prerequisites?**
+
+```{r}
+ggplotly(
+  PGRM_CAT %>% 
+    inner_join(PREREQ_CAT %>% 
+                 rename(prereq_cat = cat)) %>% 
+        group_by(cat, prereq_cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = prereq_cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Prerequisites by Program Category", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+* **Which programs split by categories are offered by program type?**
+
+```{r}
+ggplotly(
+  PGRM_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       TYPE)) %>% 
+    group_by(cat, TYPE) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = TYPE), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Delivery by Program Category", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+* **Which programs split by categories are offered by department category?**
+
+```{r}
+ggplotly(
+  DEPT_CAT %>% 
+    inner_join(PGRM_CAT %>% 
+                 rename(pgrm_cat = cat)) %>% 
+        group_by(cat, pgrm_cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = pgrm_cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Department by Program Category", 
+         x = "", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip()
+  )
+```
+
+## Where to find more?
+
+This notebook is the result of several hours spent playing in kaggle, creating notebooks and exploring previous work on the matter. Here, some of the material that was used:
+
+*  Srihari Rao's kaggle's dataset: [Data Science Universities across US](https://www.kaggle.com/sriharirao/datascience-universities-across-us)
+*  Benjamin Lott's kaggle's notebook: [Examining Data Science Related Programs in the US] (https://www.kaggle.com/benjaminlott/examining-data-science-related-programs-in-the-us)
+*  UC Business Analytics R Programming Guide: [Advanced Plots with ggplot](http://uc-r.github.io/ggplot)
+
+## About the authors
+
+Michelle and Valeria are currently working at Datank, Mexican -machine learning as a service- provider.

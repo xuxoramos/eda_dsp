@@ -327,7 +327,7 @@ PROGRAM2 %<>%
   gsub('master of science', '*M* *MS* *Sc*', .) %>%
   gsub('\\bmba\\b', '*M* *MBA* *B*', .) %>%
   gsub('master of business administration', '*M* *MBA* *B*', .) %>%
-  gsub('master of business and science', '*M* *MBS* *B* *Sc*', .) %>%
+  gsub('master of business and science', '*M* *B* *Sc*', .) %>%
   gsub('master', '*M*', .) %>%
   
   gsub('diploma', '*Cert*', .) %>%
@@ -337,11 +337,11 @@ PROGRAM2 %<>%
   gsub('phd', '*PhD*', .) %>%
   
   gsub('\\bds\\b', '*DS*', .) %>%
-  gsub('computational data science', '*DS* *CS* *CDS*', .) %>%
-  gsub('computational and data science', '*DS* *CS* *CDS*', .) %>%
+  gsub('computational data science', '*DS* *CS* *Sc*' , .) %>%
+  gsub('computational and data science', '*DS* *CS* *Sc*', .) %>%
   gsub('data science', '*DS*', .) %>%
-  gsub('computer science', '*CS*', .) %>%
-  gsub('computational science', '*CS*', .) %>%
+  gsub('computer science', '*CS* *Sc*', .) %>%
+  gsub('computational science', '*CS* *Sc*', .) %>%
   
   gsub('business analytics', '*BI* *B* *Analytics*', .) %>%
   gsub('\\bbi\\b', '*BI* *B* *Analytics*', .) %>%
@@ -352,27 +352,26 @@ PROGRAM2 %<>%
   
   gsub('applied statistics', 'statistics', .) %>%
   gsub('statistical', 'statistics', .) %>%
-  gsub('statistics', '*Stats*', .) %>%
+  gsub('statistics', '*Stats* *Sc*', .) %>%
   
   gsub('informatics', 'analytics', .) %>%
   gsub('data analytics', 'analytics', .) %>%
   gsub('analytics', '*Analytics*', .) %>%
   
-  gsub('information systems technology', '*IS* *IT*', .) %>%
-  gsub('management information systems', '*IM* *IS*', .) %>%
+  gsub('information systems technology', '*IT-IS*', .) %>%
+  gsub('management information systems', '*IM*', .) %>%
   gsub('information management', 'im', .) %>%
   gsub('information systems', 'is', .) %>%
   gsub('\\bim\\b', '*IM*', .) %>%
-  gsub('\\bis\\b', '*IS*', .) %>%
-  
-  
+  gsub('\\bis\\b', '*IT-IS*', .) %>%
   gsub('information technology', 'it', .) %>%
-  gsub('\\bit\\b', '*IT*', .) %>%
+  gsub('\\bit\\b', '*IT-IS*', .) %>%
   
   gsub('health', '*Health-Bio*', .) %>%
   gsub('bio', '*Health-Bio*', .) %>%
   gsub('urban', '*Urban*', .) %>%
   gsub('public', '*Public*', .) %>% 
+  gsub('management', '*Mgmt*', .) %>% 
   
   gsub('\\bin\\b|\\band\\b|\\bof\\b|\\bwith\\b|\\ba\\b|\\bfor\\b|\\bthe\\b|\\bat\\b', '', .) %>% 
   gsub('^a |^the ', '', .)
