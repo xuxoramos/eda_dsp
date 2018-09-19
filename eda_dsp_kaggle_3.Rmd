@@ -43,9 +43,6 @@ require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
 require(tidyr, quietly = TRUE, warn.conflicts = FALSE)
 require(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
 require(plotly, quietly = TRUE, warn.conflicts = FALSE)
-# require(leaflet, quietly = TRUE, warn.conflicts = FALSE)
-# require(rgdal, quietly = TRUE, warn.conflicts = FALSE)
-# require(ngram, quietly = TRUE, warn.conflicts = FALSE)
 ```
 
 ##  Metadata
@@ -104,6 +101,7 @@ dsp %<>% filter(YEAR == 2016 | is.na(YEAR)) %>% distinct()
 ```
 
 Now, we will include a program ID
+
 ```{r}
 dsp <- dsp %>% 
   mutate(ID = 1:nrow(dsp))
@@ -519,15 +517,15 @@ ggplotly(
                  fill = as.factor(TYPE))) + 
       geom_col(position = "stack", colour = 'grey', alpha = 0.7, width = .5) + 
       geom_text(aes(label = str_perc)) + 
-      labs(title = "DS Programs by Delivery Type", 
+      labs(title = "DS Programs by Type", 
            x = "", 
            y = "") + 
       theme_bw() + 
       theme(legend.position="none", 
-          axis.text.x = element_text(angle = 65, 
-                                     vjust = 0.5, 
-                                     hjust = 1, 
-                                     size = rel(0.9))) + 
+            axis.text.x = element_text(angle = 65, 
+                                       vjust = 0.5, 
+                                       hjust = 1, 
+                                       size = rel(0.9))) + 
       scale_y_continuous(limits = c(0,100))
     )
 ```
@@ -536,211 +534,6 @@ ggplotly(
 
 Great! we managed to extract useful features from program and department names. Now it is time to stretch our knowledge about DS programs by looking deeper into their offering by program and department categories.
 
-### Department Categories
-
-* **Which departments, split by categories, offer DS programs by state?**
-
-```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
-p1 <- ggplotly(
-  DEPT_CAT %>%
-    left_join(dsp %>% 
-                select(ID, 
-                       STATE)) %>% 
-    group_by(STATE) %>% 
-    mutate(n_state = n()) %>% 
-    group_by(STATE, n_state, cat) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100, 
-           str_perc = paste0(perc, "%")) %>% 
-    ggplot(aes(x = reorder(STATE, n_state), 
-               y = n)) + 
-    geom_col(aes(fill = cat), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Number of programs per State", 
-         x = "", 
-         y = "", 
-         fill = "") + 
-    theme_bw() + 
-    coord_flip()
-)
-
-subplot(p1, p1)
-
-```
-
-* **Which departments, split by categories, offer DS programs by delivery?**
-
-```{r}
-ggplotly(
-  DEPT_CAT %>%
-    left_join(dsp %>% 
-                select(ID, 
-                       DELIVERY)) %>% 
-    group_by(cat, DELIVERY) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100) %>% 
-    ggplot(aes(x = cat, 
-               y = perc)) + 
-    geom_col(aes(fill = DELIVERY), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Delivery by Department Category", 
-         x = "", 
-         y = "", 
-         fill = "") + 
-    theme_bw() + 
-    coord_flip()
-  )
-```
-
-The math and ds departments are the ones that have, in proportion to their offering, more programs delivered on campus. The tech department is the one that has, in proportion to its offerint, more online programs. 
-
-* **Which departments, split by categories, offer DS programs by prerequisites?**
-
-```{r}
-ggplotly(
-  DEPT_CAT %>% 
-    inner_join(PREREQ_CAT %>% 
-                 rename(prereq_cat = cat)) %>% 
-        group_by(cat, prereq_cat) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100) %>% 
-    ggplot(aes(x = cat, 
-               y = perc)) + 
-    geom_col(aes(fill = prereq_cat), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Prerequisites by Department Category", 
-         x = "", 
-         y = "", 
-         fill = "") + 
-    theme_bw() + 
-    coord_flip()
-  )
-```
-
-If you are interested in a program, the department determines the prerequisites. Make sure you make a good match with the department of the program. 
-
-* **Which departments, split by categories, offer DS programs by program type?**
-
-```{r}
-ggplotly(
-  DEPT_CAT %>%
-    left_join(dsp %>% 
-                select(ID, 
-                       TYPE)) %>% 
-    group_by(cat, TYPE) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100) %>% 
-    ggplot(aes(x = cat, 
-               y = perc)) + 
-    geom_col(aes(fill = TYPE), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Delivery by Department Category", 
-         x = "", 
-         y = "", 
-         fill = "") + 
-    theme_bw() + 
-    coord_flip()
-  )
-```
-
-You will find that certificates are more offered by technology departments, in proportion to their number of programs, than other departments. 
-
-## Program categories
-
-* **Which programs split by categories are offered by state?**
-
-```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
-ggplotly(
-  PGRM_CAT %>%
-    left_join(dsp %>% 
-                select(ID, 
-                       STATE)) %>% 
-    group_by(STATE) %>% 
-    mutate(n_stat = n()) %>% 
-    group_by(STATE, n_stat, cat) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100) %>% 
-    ggplot(aes(x = reorder(STATE, n_stat), 
-               y = n)) + 
-    geom_col(aes(fill = cat), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Number of programs per State", 
-         x = "", 
-         y = "", 
-         fill = "") +
-    theme_bw() + 
-    coord_flip()
-  )
-```
-
-* **Which programs split by categories are offered by delivery?**
-
-```{r}
-ggplotly(
-  PGRM_CAT %>%
-    left_join(dsp %>% 
-                select(ID, 
-                       DELIVERY)) %>% 
-    group_by(cat, DELIVERY) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100) %>% 
-    ggplot(aes(x = cat, 
-               y = perc)) + 
-    geom_col(aes(fill = DELIVERY), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Delivery by Program Category", 
-         x = "", 
-         y = "", 
-         fill = "") + 
-    theme_bw() + 
-    coord_flip()
-  )
-```
-
-BI Analytics programs are the ones with more online options.
-
-* **Which programs split by categories are offered by prerequisites?**
-
-```{r}
-ggplotly(
-  PGRM_CAT %>% 
-    inner_join(PREREQ_CAT %>% 
-                 rename(prereq_cat = cat)) %>% 
-        group_by(cat, prereq_cat) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100) %>% 
-    ggplot(aes(x = cat, 
-               y = perc)) + 
-    geom_col(aes(fill = prereq_cat), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Prerequisites by Program Category", 
-         x = "", 
-         y = "", 
-         fill = "") + 
-    theme_bw() + 
-    coord_flip()
-  )
-```
-
-In general, most ds programs prerequisites are balanced across cs, stats and math.
-
-* **Which programs split by categories are offered by program type?**
-
-```{r}
-ggplotly(
-  PGRM_CAT %>%
-    left_join(dsp %>% 
-                select(ID, 
-                       TYPE)) %>% 
-    group_by(cat, TYPE) %>% 
-    summarise(n = n()) %>% 
-    mutate(perc = round(n / sum(n), 4) * 100) %>% 
-    ggplot(aes(x = cat, 
-               y = perc)) + 
-    geom_col(aes(fill = TYPE), colour = 'grey', alpha = 0.7, width = .5) + 
-    labs(title = "Delivery by Program Category", 
-         x = "", 
-         y = "", 
-         fill = "") + 
-    theme_bw() + 
-    coord_flip()
-  )
-```
-
-Most certificates are offered by BI Analytics programs.
 
 * **Which programs split by categories are offered by department category?**
 
@@ -764,9 +557,245 @@ ggplotly(
   )
 ```
 
-As we can see, the department differentiates between program categories.
+As we can see, the departments make a good distinction between program categories.
 
-## Frequent Itemsets
+### State
+
+* **Which departments, split by categories, offer DS programs by state?**
+* **Which programs split by categories are offered by state?**
+
+```{r echo=T, warning=FALSE, error=FALSE, message=FALSE}
+p1 <- ggplotly(
+  DEPT_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       STATE)) %>% 
+    group_by(STATE) %>% 
+    mutate(n_state = n()) %>% 
+    group_by(STATE, n_state, cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100, 
+           str_perc = paste0(perc, "%")) %>% 
+    ggplot(aes(x = reorder(STATE, n_state), 
+               y = n)) + 
+    geom_col(aes(fill = cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Programs per State", 
+         x = "", 
+         y = "by Department", 
+         fill = "") + 
+    theme_bw() + 
+    coord_flip() +
+    scale_fill_brewer(palette="Blues")
+)
+
+p2 <- ggplotly(
+  PGRM_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       STATE)) %>% 
+    group_by(STATE) %>% 
+    mutate(n_stat = n()) %>% 
+    group_by(STATE, n_stat, cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = reorder(STATE, n_stat), 
+               y = n)) + 
+    geom_col(aes(fill = cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Programs per State", 
+         x = "", 
+         y = "by category", 
+         fill = "") +
+    theme_bw() + 
+    coord_flip() +
+    scale_fill_brewer(palette="Reds") + 
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank())
+  )
+
+subplot(p1, p2, titleX = TRUE, widths = c(0.35, 0.35))
+```
+
+You can double click on the legends to see the count for a specific department or program category.
+
+### Prerequisites
+
+* **Which departments, split by categories, offer DS programs by prerequisites?**
+* **Which programs split by categories are offered by prerequisites?**
+
+```{r}
+p1 <- ggplotly(
+  DEPT_CAT %>% 
+    inner_join(PREREQ_CAT %>% 
+                 rename(prereq_cat = cat)) %>% 
+        group_by(cat, prereq_cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = prereq_cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Prerequisites", 
+         x = "by Department", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9)))
+  )
+
+p2 <- ggplotly(
+  PGRM_CAT %>% 
+    inner_join(PREREQ_CAT %>% 
+                 rename(prereq_cat = cat)) %>% 
+        group_by(cat, prereq_cat) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = prereq_cat), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Prerequisites", 
+         x = "by category", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),  
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9)))
+  )
+
+subplot(p1, 
+        style(p2, showlegend = FALSE), 
+        widths = c(0.35, 0.35), 
+        titleX = TRUE)
+```
+
+Prerequisites differ from departments and program categories. Make sure you make a good match with the department of the program. 
+
+## Program Type
+
+* **Which departments, split by categories, offer DS programs by program type?**
+* **Which programs split by categories are offered by program type?**
+
+```{r}
+p1 <- ggplotly(
+  DEPT_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       TYPE)) %>% 
+    group_by(cat, TYPE) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = TYPE), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Type", 
+         x = "by Department", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 65, 
+                                     hjust = 1, 
+                                     size = rel(0.9)))
+  )
+
+p2 <- ggplotly(
+  PGRM_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       TYPE)) %>% 
+    group_by(cat, TYPE) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = TYPE), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Type", 
+         x = "by category", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),  
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9)))
+  )
+
+subplot(p1, 
+        style(p2, showlegend = FALSE), 
+        widths = c(0.35, 0.35), 
+        titleX = TRUE)
+```
+
+You will find that certificates are more common for BI Analytics programs, in proportion to their number of programs, than other departments. 
+
+### Delivery
+
+* **Which departments, split by categories, offer DS programs by delivery?**
+* **Which programs split by categories are offered by delivery?**
+
+```{r}
+p1 <- ggplotly(
+  DEPT_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       DELIVERY)) %>% 
+    group_by(cat, DELIVERY) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = DELIVERY), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Delivery", 
+         x = "by Department", 
+         y = "", 
+         fill = "") + 
+    theme_bw()  + 
+    theme(axis.text.x = element_text(angle = 65, 
+                                     hjust = 1, 
+                                     size = rel(0.9)))
+  )
+
+p2 <-ggplotly(
+  PGRM_CAT %>%
+    left_join(dsp %>% 
+                select(ID, 
+                       DELIVERY)) %>% 
+    group_by(cat, DELIVERY) %>% 
+    summarise(n = n()) %>% 
+    mutate(perc = round(n / sum(n), 4) * 100) %>% 
+    ggplot(aes(x = cat, 
+               y = perc)) + 
+    geom_col(aes(fill = DELIVERY), colour = 'grey', alpha = 0.7, width = .5) + 
+    labs(title = "Delivery", 
+         x = "by category", 
+         y = "", 
+         fill = "") + 
+    theme_bw() + 
+    theme(axis.text.y=element_blank(), 
+          axis.ticks.y=element_blank(),  
+          axis.text.x = element_text(angle = 65, 
+                                     vjust = 0.5, 
+                                     hjust = 1, 
+                                     size = rel(0.9)))
+  )
+
+subplot(p1, 
+        style(p2, showlegend = FALSE), 
+        widths = c(0.35, 0.35), 
+        titleX = TRUE)
+```
+
+The math and ds departments are the ones that have, in proportion to their offering, more programs delivered on campus.
+
+BI Analytics programs and tech departments are the ones, in proportion to their offering, with more online options.
+
+## Frequent Itemsets and association rules
 
 We will now discover "association rules" through frequent itemsets. For this analysis, *items* will be determined by the categories we created before:
 
@@ -775,7 +804,7 @@ We will now discover "association rules" through frequent itemsets. For this ana
 * `PGRM_CAT`
 * `TYPE`
 
-Programs that can be characterized with the items will be a *basket*. All the sets of items that can extracted from a basket are itemsets. 
+Programs that can be characterized with the items will be a *basket*. All the sets of items that can be extracted from a basket are itemsets. 
 
 Let's put together the baskets.
 
@@ -791,6 +820,8 @@ baskets <- dsp %>%
                select(ID, cat) %>% 
                rename(PGRM_CAT = cat))
 ```
+
+### Frequent Itemsets
 
 A first approach is identifying which baskets appear more frequently. Let's print the 10 most frequent baskets.
 
@@ -810,7 +841,7 @@ baskets %>%
   arrange(desc(n)) %>% head(10)
 ```
 
-Baskets with BI Analytics have more counts.
+Clearly, baskets with BI Analytics are more frequent. If we used this criteria to explore the available programs, we will end up looking mostly at BI Analytics programs. Instead of searching for frequent baskets, we will search frequent itemsets. 
 
 An itemset is said to be frequent if it appears in many baskets. If $n$ is the total number of baskets and $n(I)$ is the total number of baskets that contain the elements in $I$, then $\hat P(I) = n(I) / n$ is the "probability" of the itemset $I$.
 
@@ -847,6 +878,8 @@ The size of the itemsets listed above are:
 size(itemsets)
 ```
 
+### Confidence
+
 Assuming the probabilities of single items are independent, then $\hat P(I) = \hat P(i_1)\hat P(i_2) \ldots \hat P(i_n)$ with $I = \{i_1, i_2, \ldots ,i_n\}$. 
 
 **Itemsets cannot be frequent unless all its subsets are**.
@@ -864,14 +897,16 @@ Let's find association rules in out baskets with confidence $0.8$.
 ```{r, results = FALSE}
 rules <- apriori(as(baskets %>% select(-ID, -cat), "transactions"), 
                  pars <- list(support = 0.01, 
-                              confidence = 0.87, 
+                              confidence = 0.1, 
                               target = 'rules',
                               minlen = 4))
 ```
 
 ```{r}
 rules %>% DATAFRAME() %>% 
-  select(LHS, RHS, confidence)
+select(LHS, RHS, confidence, count)  %>% 
+arrange(desc(confidence))  %>% 
+filter(confidence > 0.8)
 ```
 
 `LHS` refers to left hand side (that is $I$ in $\hat P(i_j|I)$) and `RHS` refers to right hand side (that is $i_j$ in $\hat P(i_j|I)$).
@@ -879,7 +914,9 @@ rules %>% DATAFRAME() %>%
 Through this, we can tell that:
 
 * we have high confidence that a program is delivered on campus when it is a MS in Stats from a Math Department
-* we have high confidence that a BI Analytics program is a certification delivered online by a Business Department 
+* we have high confidence that a BI Analytics program is a certification delivered online by a Business Department
+
+### Lift
 
 It is fair to say that if ${i_j}$ is a frequent itemset, then confidence values $\hat P(i_j|I)$ might be high in consequence. To scale down this effect, we define **lift** as 
 
@@ -891,15 +928,6 @@ When $I$ and ${i_j}$ are independent, then $L(i_j|I)$ is very close to 1.
 
 Let's print the associations with higher **lift**
 
-```{r, results=FALSE}
-rules <- apriori(as(baskets %>% select(-ID, -cat), "transactions"), 
-                 pars <- list(support = 0.01, 
-                              confidence = 0.01, 
-                              target = 'rules',
-                              minlen = 4))
-```
-
-
 ```{r}
 rules %>% DATAFRAME %>% 
   select(LHS, RHS, lift, count) %>% 
@@ -907,52 +935,210 @@ rules %>% DATAFRAME %>%
   filter(lift >= 5)
 ```
 
-By looking at `count`, we notice that relationships with high lift values are not necessarily the ones with higher counts.
+By looking at `count`, we notice that relationships with high lift values are not necessarily the ones with higher counts. We also notice that there are redundant baskets shown in this list.
+
+Let's drop redundant rules. With the `significant_rules()` function we will extract the most significant associations found in our dataset. 
 
 ```{r}
-
+significant_rules <- rules[is.significant(rules, as(baskets %>% select(-ID, -cat), "transactions"))]
+inspect(as(unique(as(items(significant_rules), 'matrix')), 'itemMatrix'))
 ```
 
+## Begin you ds program search
 
-To exclude redundant rules we will use the `is.redundant()` function.
+To help you get started in your ds program search, we will print the programs that satisfy the association rules with higher lift for each department.
 
-```{r, results=FALSE}
+We invite you to ponder which departmets make a better match with what you aim for, then jump into the programs links listed for those departments. Lists are included below.
+
+You can also look into the complete ds program table mapped with the categories we created earlier. This table is in `dsp.csv`. Using the `TYPE`, `DELIVERY`, `DEPT_CAT` and `PGRM_CAT` columns to look for programs in the table is much easier that using the raw columns in the original dataset.
+
+```{r, results = FALSE}
 rules <- apriori(as(baskets %>% select(-ID, -cat), "transactions"), 
                  pars <- list(support = 0.01, 
-                              confidence = 0.01, 
+                              confidence = 0.1, 
                               target = 'rules',
-                              minlen = 4))
+                              minlen = 3))
 ```
+
+**Business Departments** 
+
+Let's explore the rules with higher lift in the Business Departments.
 
 ```{r}
-rules[!is.redundant(rules)] %>%  DATAFRAME %>% 
+rules %>% subset(items %pin% 'dept business') %>% 
+  DATAFRAME %>% 
   select(LHS, RHS, lift, count) %>% 
   arrange(desc(lift)) %>% 
-  filter(lift >= 5)
+  head(2)
 ```
 
+Now, let's look at the programs that satisfy these rules
 
-<!-- Let's visualize the lift associations in a graph. -->
+```{r}
+baskets %>%
+  filter(TYPE == 'MBA', 
+         DELIVERY == 'Online', 
+         DEPT_CAT == 'dept business') %>% 
+  select(ID) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+```
 
-<!-- ```{r} -->
-<!-- library(ggraph) -->
-<!-- library(ggdag) -->
+**Math Departments**
 
-<!-- graph <- rules %>% DATAFRAME %>%  -->
-<!--   rename(from = LHS, -->
-<!--          to = RHS) %>%  -->
-<!--   mutate(weight = log(lift)) %>%  -->
-<!--   select(from, to, weight) -->
+The rules with higher lift in Math Departments are
 
-<!-- as_tbl_graph(graph) -->
+```{r}
+rules %>% subset(items %pin% 'dept math') %>%
+  DATAFRAME %>% 
+  select(LHS, RHS, lift, count) %>% 
+  arrange(desc(lift)) %>% 
+  head(2)
+```
 
-<!-- ``` -->
+Let's print the programs that satisfy these rules.
 
+```{r}
+baskets %>%
+  filter(PGRM_CAT == 'Stats', 
+         DELIVERY == 'Campus', 
+         DEPT_CAT == 'dept math') %>% 
+  select(ID) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+```
 
+**Statistics Departments**
 
-<!-- ```{r} -->
-<!-- rules %>% sort(by = 'lift') %>% inspect() -->
-<!-- ``` -->
+Let's explore the rules with higher lift in the Statistics Departments.
+
+```{r}
+rules %>% subset(items %pin% 'dept stats') %>%
+  DATAFRAME %>% 
+  select(LHS, RHS, lift, count) %>% 
+  arrange(desc(lift)) %>% 
+  head(2)
+```
+
+Now, let's look at the programs that satisfy these rules
+
+```{r}
+baskets %>%
+  filter((PGRM_CAT == 'Stats' & 
+         DELIVERY == 'Online' & 
+         DEPT_CAT == 'dept stats') | 
+         (PGRM_CAT == 'Stats' & 
+         TYPE == 'M' & 
+         DEPT_CAT == 'dept stats')) %>% 
+  select(ID) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+```
+
+**Computer Science Departments**
+
+The rules with higher lift in CS Departments are
+
+```{r}
+rules %>% subset(items %pin% 'dept cs') %>%
+  DATAFRAME %>% 
+  select(LHS, RHS, lift, count) %>% 
+  arrange(desc(lift)) %>% 
+  head(2)
+```
+
+Let's print the programs that satisfy these rules.
+
+```{r}
+baskets %>%
+  filter((TYPE == 'C' & 
+         DELIVERY == 'Online' & 
+         DEPT_CAT == 'dept cs') | 
+         (PGRM_CAT == 'BI Analytics' & 
+         TYPE == 'C' & 
+         DEPT_CAT == 'dept cs')) %>% 
+  select(ID) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+```
+
+**Data Science Departments**
+
+Let's explore the rules with higher lift in the Data Science Departments.
+
+```{r}
+rules %>% subset(items %pin% 'dept ds') %>%
+  DATAFRAME %>% 
+  select(LHS, RHS, lift, count) %>% 
+  arrange(desc(lift)) %>% 
+  head(2)
+```
+
+Now, let's look at the programs that satisfy these rules
+
+```{r}
+baskets %>%
+  filter(TYPE == 'MS', 
+         PGRM_CAT == 'DS', 
+         DEPT_CAT == 'dept ds') %>% 
+  select(ID) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+```
+
+**Engineering Departments**
+
+The rules with higher lift in Engineering Departments are
+
+```{r}
+rules %>% subset(items %pin% 'dept engineering') %>%
+  DATAFRAME %>% 
+  select(LHS, RHS, lift, count) %>% 
+  arrange(desc(lift)) %>% 
+  head(2)
+```
+
+Let's print the programs that satisfy these rules.
+
+```{r}
+baskets %>%
+  filter((TYPE == 'MS' & 
+         PGRM_CAT == 'DS' & 
+         DEPT_CAT == 'dept engineering') | 
+         (DELIVERY == 'Campus' & 
+         PGRM_CAT == 'DS' & 
+         DEPT_CAT == 'dept engineering')) %>% 
+  select(ID) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+```
+
+**Technology Departments**
+
+Let's explore the rules with higher lift in the Technology Departments.
+
+```{r}
+rules %>% subset(items %pin% 'dept tech') %>%
+  DATAFRAME %>% 
+  select(LHS, RHS, lift, count) %>% 
+  arrange(desc(lift)) %>% 
+  head(2)
+```
+
+Now, let's look at the programs that satisfy these rules
+
+```{r}
+baskets %>%
+  filter((TYPE == 'C' & 
+         PGRM_CAT == 'BI Analytics' & 
+         DEPT_CAT == 'dept tech') | 
+         (DELIVERY == 'Online' & 
+         PGRM_CAT == 'BI Analytics' & 
+         DEPT_CAT == 'dept tech')) %>% 
+  select(ID) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+```
 
 ## Where to find more?
 
