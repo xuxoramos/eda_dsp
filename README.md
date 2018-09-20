@@ -1,5 +1,4 @@
-The R markdown can be run with a [rocker image](https://www.rocker-project.org), y unos
-xG de memoria) built with the Dockerfile in this repo:
+The R markdown can be run with a [rocker image](https://www.rocker-project.org) built with the Dockerfile in this repo.
 
 In a terminal run
 
