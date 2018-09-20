@@ -16,6 +16,14 @@ RUN install2.r --error --deps TRUE magrittr
 
 RUN install2.r --error --deps TRUE DT
 
+RUN mkdir /home/rstudio/working
+RUN mkdir /home/rstudio/input
+RUN mkdir /home/rstudio/output
+
+ADD /working /home/rstudio/working
+ADD /input /home/rstudio/input
+ADD /output /home/rstudio/output
+
 
 
 	
