@@ -1,10 +1,56 @@
-The R markdown can be run with a [rocker image](https://www.rocker-project.org) built with the Dockerfile in this repo.
+# Exploring Data Science Programs
+
+*Michelle Audirac*
+
+*Valeria Perez-Cong*
+
+**If you're looking for the Data Science program that is right for you, this [notebook](./working/eda_dsp.Rmd) will help you get started in your search!**
+
+Finding the graduate program that best fits you has never been an easy task. Finding the right Data Science program might even be harder! the soaring hunger for data-savvy workforce in all industries has rocketed the offering of Data Science programs. 
+
+If you are interested in data, then there is a good chance that instead of surfing the web for DS programs you plan on storing scraped university pages data, to then build a dashboard and explore it.
+
+**Good news is**, you found this repo and you won't have to begin your project from scratch since we munged and explored a kaggle [dataset](https://www.kaggle.com/sriharirao/datascience-universities-across-us) containing web scraped DS programs data.
+
+Before you jump into this repo's content, chill! Not so fast...
+
+Data Science programs come in a variety of colors and flavors. As wide-ranging, interdisciplinary and clouded in hype as the term -Data Science- can be, first figure out what is the data outfit you want to wear:
+
+**Step 1** make sure you understand whether you are looking to style your business intelligence skills or if your looking to fly your machine learning ship, as these are different journeys. Deep-dive into whether you would like to specialize in bio or urban applications. 
+
+**Step 2** depending on where you arrived at in step 1, filter out programs and departments.  Ask yourself if you wish to continue working as you might want to consider the online and part time programs space.
+
+**Step 3** go through this repo's content to get insights,
+
+In our exploratory data analysis we munge the raw [dataset](./input/timesMergedData.csv) to create useful categorical columns:
+
+* `TYPE` 
+* `DELIVERY`
+* `PGRM_CAT`
+* `DEPT_CAT`
+
+We also work on an association rules analysis to find frequent types of ds programs according to these categorical columns. This analysis will help you get insights about the ds program offering accross different departments.
+
+**Step 4** check out the complete munged [dataset](../output/dsp.csv) we create in this repo and filter programs according to your own interests. Visit their webpages using the links in the dataset. 
+
+Finally use your newly gained insights to extend your web surf and make a decision!
+
+**hApPy DS program search!!**
+
+In addition, if you are learning how to use hadley's `tidyverse` this repo takes advantage of tidyverse's grammar to make data analysis. We also make use of the `arules` package to find association rules between itemsets.
+
+## how to use
+
+Fork this repo.
+
+The [notebook](./working/eda_dsp.Rmd) can be run with a [rocker image](https://www.rocker-project.org) built with the Dockerfile in this repo.
 
 In a terminal run
 
-```
+```{bash}
 docker build -t rstudio .
-docker run --rm -e PASSWORD=m1ch3ll3 -p 8787:8787 -v ~/:/home/rstudio/ rstudio
+docker run --rm -e PASSWORD=m1ch3ll3 -p 8787:8787 rstudio
 ```
 
-then in your browser go to localhost:8787 and use the password m1ch3ll3 with user rstudio.
+Then your browser go to localhost:8787 and use the password m1ch3ll3 with user rstudio.
+
