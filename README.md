@@ -54,3 +54,26 @@ docker run --rm -e PASSWORD=m1ch3ll3 -p 8787:8787 rstudio
 
 Then your browser go to localhost:8787 and use the password m1ch3ll3 with user rstudio.
 
+## To go
+
+We managed to **extract relevant categories from program and department names** to create categorical columns that helped us find association rules between programs. We show the school, state, city, program name, department name and website link for the **programs that matched with the most relevant rules for each department category**.
+
+## Where to find more?
+
+This notebook is the result of several hours spent playing in kaggle, creating notebooks and exploring previous work on the matter. Here, some of the material that was used:
+
+*  Srihari Rao's kaggle's dataset: [Data Science Universities across US](https://www.kaggle.com/sriharirao/datascience-universities-across-us)
+*  Benjamin Lott's kaggle's notebook: [Examining Data Science Related Programs in the US](https://www.kaggle.com/benjaminlott/examining-data-science-related-programs-in-the-us)
+*  UC Business Analytics R Programming Guide: [Advanced Plots with ggplot](http://uc-r.github.io/ggplot)
+
+For the frequent itemsets analysis we used the content found in:
+
+* Felipe Gonzalez's [repo](https://github.com/felipegonzalez/metodos-analiticos-2018)
+
+Please take a look into this wonderful book too!! 
+
+* Leskovec, Jure, Anand Rajaraman, and Jeffrey David Ullman. 2014. Mining of Massive Datasets. 2nd ed. New York, NY, USA: Cambridge University Press.
+
+## About the authors
+
+[Michelle](www.linkedin.com/in/audiracmichelle) and Valeria are currently working at [Julieta](https://julieta.ai/), Mexican -machine learning as a service- provider.
