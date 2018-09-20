@@ -39,7 +39,7 @@ Finally use your newly gained insights to extend your web surf and make a decisi
 
 In addition, if you are learning how to use hadley's `tidyverse` this repo takes advantage of tidyverse's grammar to make data analysis. We also make use of the `arules` package to find association rules between itemsets.
 
-## how to use
+## How to use
 
 Fork this repo.
 
