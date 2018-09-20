@@ -10,7 +10,7 @@ Finding the graduate program that best fits you has never been an easy task. Fin
 
 If you are interested in data, then there is a good chance that instead of surfing the web for DS programs you plan on storing scraped university pages data, to then build a dashboard and explore it.
 
-**Good news is**, you found this repo and you won't have to begin your project from scratch since we munged and explored a kaggle [dataset](https://www.kaggle.com/sriharirao/datascience-universities-across-us) containing web scraped DS programs data.
+**Good news is**, you found this repo and you won't have to begin your project from scratch since we munged and explored a [kaggle dataset](https://www.kaggle.com/sriharirao/datascience-universities-across-us) containing web scraped DS programs data.
 
 Before you jump into this repo's content, chill! Not so fast...
 
@@ -22,7 +22,7 @@ Data Science programs come in a variety of colors and flavors. As wide-ranging, 
 
 **Step 3** go through this repo's content to get insights,
 
-In our exploratory data analysis we munge the raw [dataset](./input/timesMergedData.csv) to create useful categorical columns:
+In our exploratory data analysis we munge the [raw dataset](./input/timesMergedData.csv) to create useful categorical columns:
 
 * `TYPE` 
 * `DELIVERY`
@@ -31,7 +31,7 @@ In our exploratory data analysis we munge the raw [dataset](./input/timesMergedD
 
 We also work on an association rules analysis to find frequent types of ds programs according to these categorical columns. This analysis will help you get insights about the ds program offering accross different departments.
 
-**Step 4** check out the complete munged [dataset](../output/dsp.csv) we create in this repo and filter programs according to your own interests. Visit their webpages using the links in the dataset. 
+**Step 4** check out the complete [munged dataset](../output/dsp.csv) we create in this repo and filter programs according to your own interests. Visit their webpages using the links in the dataset. 
 
 Finally use your newly gained insights to extend your web surf and make a decision!
 
