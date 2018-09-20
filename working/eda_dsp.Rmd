@@ -2,10 +2,11 @@
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, 
-                      warning = FALSE)
+                      warning = FALSE, 
+                      message = FALSE)
 ```
 
-#Exploring Data Science Programs
+# Exploring Data Science Programs
 
 *Michelle Audirac*
 
@@ -17,9 +18,9 @@ Finding the graduate program that best fits you has never been an easy task. Fin
 
 If you are interested in data, then there is a good chance that instead of surfing the web for DS programs you plan on storing scraped university pages data, to then build a dashboard and explore it.
 
-**Good news is**, you found this post and you won't have to begin your project from scratch since we provide an EDA of a kaggle [dataset](https://www.kaggle.com/sriharirao/datascience-universities-across-us) containing web scraped DS programs data. You can also check out the shiny app that we built with this dataset [here](LIGA).
+**Good news is**, you found this notebook and you won't have to begin your project from scratch since we munged and explored a kaggle [dataset](https://www.kaggle.com/sriharirao/datascience-universities-across-us) containing web scraped DS programs data.
 
-But first, chill! Not so fast...
+Before you jump into this notebook's content, chill! Not so fast...
 
 Data Science programs come in a variety of colors and flavors. As wide-ranging, interdisciplinary and clouded in hype as the term -Data Science- can be, first figure out what is the data outfit you want to wear:
 
@@ -27,22 +28,36 @@ Data Science programs come in a variety of colors and flavors. As wide-ranging, 
 
 **Step 2** depending on where you arrived at in step 1, filter out programs and departments.  Ask yourself if you wish to continue working as you might want to consider the online and part time programs space.
 
-**Step 3** go through this notebook's content, use our shiny app to get insights...then use these insights to make an intelligent web surf and finally make an informed decision.
+**Step 3** go through this notebook's content to get insights,
+
+In our exploratory data analysis we munge the raw dataset to create useful categorical colums:
+
+* `TYPE` 
+* `DELIVERY`
+* `PGRM_CAT`
+* `DEPT_CAT`
+
+We also work on an association rules analysis to find frequent types of ds programs according to these categorical columns. This analysis will help you get insights about the ds program offering accros different departments.
+
+**Step 4** check out the complete munged [dataset](../output/dsp.csv) we create in this notebook and filter programs according to your own interests. Visit their webpages using the links in the dataset. 
+
+Finally use your newly gained insights to extend your web surf and make a decision!
 
 **hApPy DS program search!!**
 
-In addition, if you are learning how to use hadley's `ggplot2`, this notebook takes advantage of ggplot's grammar of graphics to play with plot aesthetics. 
+In addition, if you are learning how to use hadley's `tidyverse` this notebook takes advantage of tidyverse's grammar to make data analysis. We also make use of the `arules` package to find association rules between itemsets.
 
 ## Loading packages
 
 We require the packages listed in the code chunk below to run the notebook.
 
 ```{r}
+require(tidyverse, quietly = TRUE, warn.conflicts = FALSE)
 require(magrittr, quietly = TRUE, warn.conflicts = FALSE)
-require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
-require(tidyr, quietly = TRUE, warn.conflicts = FALSE)
-require(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
 require(plotly, quietly = TRUE, warn.conflicts = FALSE)
+require(IRdisplay, quietly = TRUE, warn.conflicts = FALSE)
+require(arules, quietly = TRUE, warn.conflicts = FALSE)
+require(DT, quietly = TRUE, warn.conflicts = FALSE)
 ```
 
 ##  Metadata
@@ -50,8 +65,8 @@ require(plotly, quietly = TRUE, warn.conflicts = FALSE)
 Let's read the [Data Science Universities across US](https://www.kaggle.com/sriharirao/datascience-universities-across-us) dataset and print its structure.
 
 ```{r}
-dsp <- read.csv("./timesMergedData.csv")
-str(dsp)
+dsp <- read_csv("../input/timesMergedData.csv")
+spec(dsp)
 ```
 
 With this, we infer the dataset's metadata:
@@ -125,11 +140,12 @@ In the next section we will explore, munge and visualize the features listed bel
 table(dsp$DELIVERY)
 ```
 
+
 They look pretty dirty. We will recode them and viz the percentage of DS programs split by the new `DELIVERY`'s categories.
 
 ```{r}
 dsp %<>% 
-  mutate(DELIVERY = recode(DELIVERY, 
+  mutate(DELIVERY = recode_factor(as.factor(DELIVERY), 
                             'Blended' = 'Hybrid',
                             'Campus and online' = 'Hybrid',
                             'Campus or Online' = 'Campus or online',
@@ -904,9 +920,9 @@ rules <- apriori(as(baskets %>% select(-ID, -cat), "transactions"),
 
 ```{r}
 rules %>% DATAFRAME() %>% 
-select(LHS, RHS, confidence, count)  %>% 
-arrange(desc(confidence))  %>% 
-filter(confidence > 0.8)
+  select(LHS, RHS, confidence, count) %>% 
+  arrange(desc(confidence))  %>% 
+  filter(confidence > 0.8)
 ```
 
 `LHS` refers to left hand side (that is $I$ in $\hat P(i_j|I)$) and `RHS` refers to right hand side (that is $i_j$ in $\hat P(i_j|I)$).
@@ -944,13 +960,11 @@ significant_rules <- rules[is.significant(rules, as(baskets %>% select(-ID, -cat
 inspect(as(unique(as(items(significant_rules), 'matrix')), 'itemMatrix'))
 ```
 
-## Begin you ds program search
+## Begin your ds program search
 
 To help you get started in your ds program search, we will print the programs that satisfy the association rules with higher lift for each department.
 
 We invite you to ponder which departmets make a better match with what you aim for, then jump into the programs links listed for those departments. Lists are included below.
-
-You can also look into the complete ds program table mapped with the categories we created earlier. This table is in `dsp.csv`. Using the `TYPE`, `DELIVERY`, `DEPT_CAT` and `PGRM_CAT` columns to look for programs in the table is much easier that using the raw columns in the original dataset.
 
 ```{r, results = FALSE}
 rules <- apriori(as(baskets %>% select(-ID, -cat), "transactions"), 
@@ -981,7 +995,8 @@ baskets %>%
          DEPT_CAT == 'dept business') %>% 
   select(ID) %>% 
   left_join(dsp) %>% 
-  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK) %>% 
+  DT::datatable()
 ```
 
 **Math Departments**
@@ -1005,7 +1020,8 @@ baskets %>%
          DEPT_CAT == 'dept math') %>% 
   select(ID) %>% 
   left_join(dsp) %>% 
-  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK) %>% 
+  DT::datatable()
 ```
 
 **Statistics Departments**
@@ -1032,7 +1048,8 @@ baskets %>%
          DEPT_CAT == 'dept stats')) %>% 
   select(ID) %>% 
   left_join(dsp) %>% 
-  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK) %>% 
+  DT::datatable()
 ```
 
 **Computer Science Departments**
@@ -1059,7 +1076,8 @@ baskets %>%
          DEPT_CAT == 'dept cs')) %>% 
   select(ID) %>% 
   left_join(dsp) %>% 
-  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK) %>% 
+  DT::datatable()
 ```
 
 **Data Science Departments**
@@ -1083,7 +1101,8 @@ baskets %>%
          DEPT_CAT == 'dept ds') %>% 
   select(ID) %>% 
   left_join(dsp) %>% 
-  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK) %>% 
+  DT::datatable()
 ```
 
 **Engineering Departments**
@@ -1110,7 +1129,8 @@ baskets %>%
          DEPT_CAT == 'dept engineering')) %>% 
   select(ID) %>% 
   left_join(dsp) %>% 
-  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK) %>% 
+  DT::datatable()
 ```
 
 **Technology Departments**
@@ -1125,7 +1145,7 @@ rules %>% subset(items %pin% 'dept tech') %>%
   head(2)
 ```
 
-Now, let's look at the programs that satisfy these rules
+Now, let's look at the programs that satisfy these rules.
 
 ```{r}
 baskets %>%
@@ -1137,20 +1157,46 @@ baskets %>%
          DEPT_CAT == 'dept tech')) %>% 
   select(ID) %>% 
   left_join(dsp) %>% 
-  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK)
+  select(SCHOOL, STATE, CITY, PROGRAM, DEPARTMENT, LINK) %>% 
+  DT::datatable()
 ```
+
+**Filter your own programs**
+
+Look into the complete munged ds program dataset in [dsp.csv](../output/dsp.csv). Use the `TYPE`, `DELIVERY`, `DEPT_CAT` and `PGRM_CAT` columns to look for programs, this will be much easier that using the raw columns in the original dataset.
+
+```{r}
+baskets %>% 
+  select(-cat) %>% 
+  left_join(dsp) %>% 
+  select(SCHOOL, 
+         STATE, 
+         CITY, 
+         PROGRAM, 
+         DEPARTMENT, 
+         PGRM_CAT, 
+         DEPT_CAT, 
+         TYPE, 
+         DELIVERY, 
+         LINK) %>% 
+  write_csv('../output/dsp.csv')
+```
+
+## To go
+
+We managed to **extract relevant categories from program and department names** to create categorical columns that helped us find association rules between programs. We show the school, state, city, program name, department name and website link for the **programs that matched with the most relevant rules for each department category**.
 
 ## Where to find more?
 
 This notebook is the result of several hours spent playing in kaggle, creating notebooks and exploring previous work on the matter. Here, some of the material that was used:
 
 *  Srihari Rao's kaggle's dataset: [Data Science Universities across US](https://www.kaggle.com/sriharirao/datascience-universities-across-us)
-*  Benjamin Lott's kaggle's notebook: [Examining Data Science Related Programs in the US] (https://www.kaggle.com/benjaminlott/examining-data-science-related-programs-in-the-us)
+*  Benjamin Lott's kaggle's notebook: [Examining Data Science Related Programs in the US](https://www.kaggle.com/benjaminlott/examining-data-science-related-programs-in-the-us)
 *  UC Business Analytics R Programming Guide: [Advanced Plots with ggplot](http://uc-r.github.io/ggplot)
 
 For the frequent itemsets analysis we used the content found in:
 
-* Felipe Gonzalez's repo [https://github.com/felipegonzalez/metodos-analiticos-2018](https://github.com/felipegonzalez/metodos-analiticos-2018)
+* Felipe Gonzalez's [repo](https://github.com/felipegonzalez/metodos-analiticos-2018)
 
 Please take a look into this wonderful book too!! 
 
@@ -1158,4 +1204,4 @@ Please take a look into this wonderful book too!!
 
 ## About the authors
 
-Michelle and Valeria are currently working at Datank, Mexican -machine learning as a service- provider.
+[Michelle](www.linkedin.com/in/audiracmichelle) and Valeria are currently working at [Julieta](https://julieta.ai/), Mexican -machine learning as a service- provider.
